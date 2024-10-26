@@ -1,20 +1,28 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import login from '../../images/login.jpg'
 import logo from '../../images/logo.png'
-import { useContext } from "react"
+import { useContext, useEffect } from "react"
 import { AuthContext } from "../../providers/AuthProvider"
 import toast, { Toaster } from 'react-hot-toast';
-
+import axios from 'axios'
 const Login = () => {
   const navigate=useNavigate()
-  const {signIn,signInWithGoogle}=useContext(AuthContext)
-
+  const {signIn,signInWithGoogle,user,loading}=useContext(AuthContext)
+   const location=useLocation()
+   useEffect(()=>{
+    if(user) {
+      navigate('/')
+    }
+   },[navigate,user])
+   const from=location.state || '/'
    //signinWithGoogle
   const handleSignInWithGoogle=async()=>{
        try{
-        await signInWithGoogle()
+       const result= await signInWithGoogle()
+       const {data}=await axios.post(`${import.meta.env.VITE_API_URL}/jwt`,{email:result?.user?.email},{withCredentials:true})
+       console.log(data)
         toast.success('SignIn Successfully!')
-        navigate('/')
+        navigate(from,{replace:true})
        } catch(err){
         console.log(err)
         toast.error(err?.message);
@@ -31,14 +39,17 @@ const Login = () => {
     console.log({email,password})
     try{
       const result =await signIn(email,password)
+      const {data}=await axios.post(`${import.meta.env.VITE_API_URL}/jwt`,{email:result?.user?.email},{withCredentials:true})
       console.log(result)
-      navigate('/')
+      navigate(from,{replace:true})
       toast.success("User Login Successfully!")
     } catch(err){
       console.log(err)
       toast.error(err?.message)
     }
   }
+
+  if(user || loading) return
 
     return (
       <div className='flex justify-center items-center min-h-[calc(100vh-306px)] my-10'>

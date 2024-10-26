@@ -119,7 +119,7 @@ const MyPostedJobs = () => {
                             </td>
                             <td
                               title=''
-                              className='px-4 py-4 text-sm text-gray-500  whitespace-nowrap'
+                              className='px-4 py-4 text-sm text-gray-500  whitespace-nowrap '
                             >
                               {job.description}
                             </td>

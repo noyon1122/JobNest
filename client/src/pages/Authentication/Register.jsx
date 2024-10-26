@@ -1,19 +1,29 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import register from '../../images/register.jpg'
 import logo from '../../images/logo.png'
 import toast, { Toaster } from 'react-hot-toast';
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
+import axios from "axios";
 const Register = () => {
   const navigate=useNavigate()
-  const {user,setUser,signInWithGoogle,createUser,updateUserProfile}=useContext(AuthContext)
+  const location=useLocation()
+  const {user,setUser,signInWithGoogle,createUser,updateUserProfile,loading}=useContext(AuthContext)
+  useEffect(()=>{
+    if(user) {
+      navigate('/')
+    }
+  },[navigate,user])
+  const from=location.state || '/'
+  
 
   //Sign In with Google
   const handleSignInWithGoogle=async()=>{
     try{
-     await signInWithGoogle()
+   const result=  await signInWithGoogle()
+   const {data}=await axios.post(`${import.meta.env.VITE_API_URL}/jwt`,{email:result?.user?.email},{withCredentials:true})
      toast.success('SignIn Successfully!')
-     navigate('/')
+     navigate(from,{replace:true})
     } catch(err){
      console.log(err)
      toast.error(err?.message);
@@ -30,19 +40,23 @@ const handleSignUp =async e =>{
   const password=form.password.value;
   const name=form.name.value;
   const photo=form.photo.value;
-  console.log({name,email,password,photo})
+  //console.log({name,email,password,photo})
   try{
     const result =await createUser(email,password)
-    console.log(result)
+    
+    //console.log(result)
     await updateUserProfile(name,photo)
-    setUser({...user,photoURL:photo,displayName:name})
-    navigate('/')
+    setUser({...result?.user,photoURL:photo,displayName:name})
+    const {data}=await axios.post(`${import.meta.env.VITE_API_URL}/jwt`,{email:result?.user?.email},{withCredentials:true})
+    navigate(from,{replace:true})
     toast.success("User Login Successfully!")
   } catch(err){
     console.log(err)
     toast.error(err?.message)
   }
 }
+
+if(user || loading) return 
 
 //SignUp with name,email,password,photURl
     return (

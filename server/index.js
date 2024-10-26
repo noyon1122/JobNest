@@ -1,6 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
+const jwt=require('jsonwebtoken')
+const cookieParser=require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const port =process.env.PORT || 5000;
@@ -13,7 +15,7 @@ const corsOptions={
 }
 app.use(cors(corsOptions));
 app.use(express.json());
-
+app.use(cookieParser())
 app.get('/user',async(req,res)=>{
     res.send('This is from server')
 })
@@ -36,9 +38,38 @@ async function run() {
     const jobsCollection=client.db('jobPortal').collection('jobs')
     const bidsCollection=client.db('jobPortal').collection('bids')
 
+
+    //==========JWT=============
+
+    //generate token
+    app.post('/jwt',async(req,res)=>{
+      const user=req.body
+      const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'365d'})
+      res
+      .cookie('token',token,{
+        httpOnly:true,
+        secure:process.env.NODE_ENV==='production',
+        sameSite:process.env.NODE_ENV==='production'? 'none':'strict'
+      })
+      .send({success:true})
+    })
+
+    //Clear / remove token after logout
+  app.get('/logout',(req,res)=>{
+    res
+    .clearCookie('token',{
+      httpOnly:true,
+      secure:process.env.NODE_ENV==='production',
+      sameSite:process.env.NODE_ENV==='production'? 'none':'strict',
+      maxAge:0
+    })
+    .send({success:true})
+  })
+
+
    //get all data from the db 
     app.get('/jobs',async(req,res)=>{
-        console.log("This is from jobsCollection")
+       // console.log("This is from jobsCollection")
         const result=await jobsCollection.find().toArray()
         res.send(result)
     })
@@ -57,7 +88,7 @@ async function run() {
       const id=req.params.id
       const query={_id:new ObjectId(id)}
       const newJob=req.body
-      console.log(newJob)
+      //console.log(newJob)
       const options={upsert:true}
 
       const updateJob={
@@ -68,6 +99,7 @@ async function run() {
           min_price:newJob.min_price,
           deadline:newJob.deadline,
           description:newJob.description
+          //all data set by useing this command: ...newJob
         }
       }
 
@@ -87,27 +119,62 @@ async function run() {
 
     app.get('/jobs/:email',async(req,res)=>{
       const email=req.params.email;
-      console.log(email)
+      //console.log(email)
       const query={'buyer.email':email}
       const result=await jobsCollection.find(query).toArray()
       res.send(result)
     })
-
-    //save bid data to mondodb bid collection
-    app.post('/bid',async(req,res)=>{
-      const bidData=req.body;
-      console.log(bidData)
-      const result=await bidsCollection.insertOne(bidData)
-      res.send(result)
-    })
-
     //save job data to mondodb bid collection
     app.post('/job',async(req,res)=>{
       const jobData=req.body;
-      console.log(jobData)
+     // console.log(jobData)
       const result=await jobsCollection.insertOne(jobData)
       res.send(result)
     })
+
+  //=======================================
+  //=======================================
+  //Bids get,post,delete section
+
+   //save bid data to mondodb bid collection
+   app.post('/bid',async(req,res)=>{
+    const bidData=req.body;
+    //console.log(bidData)
+    const result=await bidsCollection.insertOne(bidData)
+    res.send(result)
+  })
+  
+  //get bid from the db and send to the client
+  app.get('/my-bids/:email',async(req,res)=>{
+    const email=req.params.email;
+    //console.log(email)
+    const query={email}
+    const result=await bidsCollection.find(query).toArray()
+    res.send(result)
+  })
+
+  //get bid from the db and for owner from the client user
+  app.get('/bid-requests/:email',async(req,res)=>{
+    const email=req.params.email;
+   // console.log(email)
+    const query={buyer_email:email}
+    const result=await bidsCollection.find(query).toArray()
+    res.send(result)
+  })
+
+  //update status bid in the db 
+  app.patch('/bid/:id',async(req,res)=>{
+    const id=req.params.id
+    const status=req.body;
+   // console.log(status)
+    const query={_id:new ObjectId(id)}
+   const updateDoc={
+    $set:status
+   }
+    const result=await bidsCollection.updateOne(query,updateDoc)
+    res.send(result)
+  })
+
     // Connect the client to the server	(optional starting in v4.7)
    // await client.connect();
     // Send a ping to confirm a successful connection
