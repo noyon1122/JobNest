@@ -15,10 +15,32 @@ const corsOptions={
 }
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser());
 app.get('/user',async(req,res)=>{
     res.send('This is from server')
 })
+
+//verify token using custom function
+
+const verifyToken=(req,res,next)=>{
+  const token=req.cookies?.token
+    if(!token) return res.status(401).send({message:'UnAuthorized Access'})
+    if(token)
+      {
+        jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{
+       
+          if(err){
+            return res.status(401).send({message:'UnAuthorized Access'})
+          }
+          console.log(decoded)
+          req.user=decoded
+          next()
+        })
+      }  
+   
+      
+
+}
 
 
 
@@ -43,8 +65,8 @@ async function run() {
 
     //generate token
     app.post('/jwt',async(req,res)=>{
-      const user=req.body
-      const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'365d'})
+      const email=req.body
+      const token=jwt.sign(email,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'365d'})
       res
       .cookie('token',token,{
         httpOnly:true,
@@ -117,8 +139,14 @@ async function run() {
 
     //get all the jobs data for a sepcific user by email
 
-    app.get('/jobs/:email',async(req,res)=>{
+    app.get('/jobs/:email',verifyToken,async(req,res)=>{
       const email=req.params.email;
+      const tokenEmail=req.user.email
+      if(tokenEmail !==email)
+      {
+       return res.status(403).send({message:'Forbidden Access'})
+      }
+      //console.log(token)
       //console.log(email)
       const query={'buyer.email':email}
       const result=await jobsCollection.find(query).toArray()
