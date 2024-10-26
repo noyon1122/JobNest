@@ -9,7 +9,7 @@ const port =process.env.PORT || 5000;
 
 const app=express();
 const corsOptions={
-    origin:['http://localhost:5173',"http://localhost:5174"],
+    origin:['http://localhost:5173',"http://localhost:5174","job-portal-78182.web.app"],
     credentials:true,
     optionSuccessStatus:200,
 }
@@ -77,6 +77,9 @@ async function run() {
     })
 
     //Clear / remove token after logout
+   app.get('/',(req,res)=>{
+    res.send("This is from server")
+   }) 
   app.get('/logout',(req,res)=>{
     res
     .clearCookie('token',{
@@ -202,6 +205,46 @@ async function run() {
     const result=await bidsCollection.updateOne(query,updateDoc)
     res.send(result)
   })
+
+  //===========Get All data For Pagination========
+   //get all data from the db 
+   app.get('/all-jobs',async(req,res)=>{
+    // console.log("This is from jobsCollection")
+    const size=parseInt(req.query.size)
+    const page=parseInt(req.query.page)-1
+    const filter=req.query.filter
+    let sort=req.query.sort
+    const search=req.query.search
+    let options={}
+    console.log("Sort value :",sort)
+    if(sort){
+      options={sort:{deadline: sort==='asc' ? 1:-1}}
+    }
+    let query={
+      job_title:{$regex:search,$options:'i'}
+    }
+    if(filter){
+      query.category= filter
+    }
+   // console.log(size,page)
+     const result=await jobsCollection.find(query,options).skip(page*size).limit(size).toArray()
+     res.send(result)
+ })
+  //get all data from the db 
+  app.get('/jobs-count',async(req,res)=>{
+    // console.log("This is from jobsCollection")
+    const filter=req.query.filter
+    const search=req.query.search
+    let query={
+      job_title:{$regex:search,$options:'i'}
+    }
+    if(filter){
+      query.category= filter
+    }
+    
+     const count=await jobsCollection.countDocuments(query)
+     res.send({count})
+ })
 
     // Connect the client to the server	(optional starting in v4.7)
    // await client.connect();

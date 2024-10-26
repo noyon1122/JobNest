@@ -5,9 +5,10 @@ import { useContext, useEffect } from "react"
 import { AuthContext } from "../../providers/AuthProvider"
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios'
+import useAuth from "../../hooks/useAuth"
 const Login = () => {
   const navigate=useNavigate()
-  const {signIn,signInWithGoogle,user,loading}=useContext(AuthContext)
+  const {signIn,signInWithGoogle,user,loading}=useAuth()
    const location=useLocation()
    useEffect(()=>{
     if(user) {
