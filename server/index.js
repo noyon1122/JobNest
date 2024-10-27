@@ -9,7 +9,7 @@ const port =process.env.PORT || 5000;
 
 const app=express();
 const corsOptions={
-    origin:['http://localhost:5173',"http://localhost:5174","job-portal-78182.web.app"],
+    origin:['http://localhost:5173',"http://localhost:5174","https://job-portal-78182.web.app",'job-portal-78182.firebaseapp.com'],
     credentials:true,
     optionSuccessStatus:200,
 }
